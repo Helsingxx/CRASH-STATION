@@ -11,7 +11,7 @@ else
 	var=$(echo $RANDOM | shasum | awk '{print $1}')
 	git clone https://github.com/Helsingxx/CRASH-STATION.git $var
 	diff <(shasum fuzzer.py | awk '{print $1}') <(shasum $var/fuzzer.py | awk '{print $1}')
-	if [ $? -eq 1]
+	if [ $? -eq 1 ]
 	then
 		mv $var "CRASH_STATION_DIR"
 	else
