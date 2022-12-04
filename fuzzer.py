@@ -9,12 +9,16 @@ import shlex
 
 def Str_Mutator(s_string):
 	str_printed = string.ascii_letters + string.digits + "!#$%&'()*+,-./:;<=>?@[]^_`{|}~ "
-	random_outchar = str_printed[random.randrange(len(str_printed))]
-	random_inchar = s_string[random.randrange(len(s_string))]
-	return str(s_string).replace(random_inchar, random_outchar)
+	#random_outchar = str_printed[random.randrange(len(str_printed))]
+	#random_inchar = s_string[random.randrange(len(s_string))]
+	#return str(s_string).replace(random_inchar, random_outchar)
+	a_string = list(s_string)
+	a_string[random.randrange(len(a_string))] =  str_printed[random.randrange(len(str_printed))]
+	return "".join(a_string)
 
 
-def El_Mutator(proto, functional):
+
+def El_Mutator(proto, functional, the_range):
 	result = []
 	mutations = [ operator.add, operator.and_, operator.sub, operator.mul, 
 	operator.xor, operator.or_, operator.mod, operator.lshift, operator.rshift, 
@@ -28,7 +32,7 @@ def El_Mutator(proto, functional):
 		if proto[x] == "string":
 			result.append(list(map(str_mutations[random.randrange(strmut_len)], [i])))
 			z = 0
-			for c in range(40):
+			for c in range(the_range * 4):
 				result[x].append(str(list(map(str_mutations[random.randrange(strmut_len)], [result[x][z]]))[0]))
 				z += 1
 		else:
@@ -37,15 +41,17 @@ def El_Mutator(proto, functional):
 			except:
 				result.append([0])
 			s = 0
-			for c in range(10):
+			for c in range(the_range):
 				try:
-					result[x].append(int(list(map(mutations[random.randrange(mut_len)], [result[x][s]], [random.randrange(-256, 256)]))[0]))
+					res = int(list(map(mutations[random.randrange(mut_len)], [result[x][s]], [random.randrange(-256, 256)]))[0])
+					if (res >= 256 ** types[proto[x]]):
+						res = res % 256 ** types[proto[x]]
+					result[x].append(res)
 				except:
 					result[x].append(-1)
 				s += 1
 		x += 1
 	return list(map(list, list(map(set, result))))
-
 
 #def gen_num(power):
 #	global gen_num_i
@@ -57,7 +63,7 @@ def El_Mutator(proto, functional):
 
 def gen_args(prot, functional):
 	inp = ""
-	mut_arr = El_Mutator(prot, functional)
+	mut_arr = El_Mutator(prot, functional, 10)
 	for i in range(len(prot)):
 		if (prot[i] == "string"):
 			inp += "\""
@@ -82,7 +88,7 @@ def function_gen(name, prot, f):
 def form_random_pass(proto):
 	functional = input("Please enter the same number of functional example arguments (seperated by space): ").split(" ")
 	inp = ""
-	mut_arr = El_Mutator(proto, functional)
+	mut_arr = El_Mutator(proto, functional, 10)
 	for i in range(len(proto)):
 		inp += str(mut_arr[i][random.randrange(len(mut_arr[i]))])
 		inp += " "
@@ -97,6 +103,41 @@ def form_command(executable, exec_args):
 		proto.append(list(types.keys())[random.randrange(30) % len(list(types.keys()))])
 	command += form_random_pass(proto)
 	return shlex.split(command)
+
+def raw_fuzz():
+	proto = []
+	functional = []
+	keylist = list(types.keys())
+	functional = "This is a long {} string".format("long " * 10).split(" ")
+	functional.remove("")
+	for i in range(len(functional)):
+		proto.append("string")
+	mut_result = El_Mutator(proto, functional, 10)
+	mut_true_res = []
+	mut_true_true_res = ""
+	print(mut_result)
+	for i in mut_result:
+		mut_true_res.extend(i)
+	for i in mut_true_res:
+		mut_true_true_res += i
+	print(mut_true_true_res)
+
+def parse_file(i):
+	file = ""
+	file_syntax = ""
+	with open(i, "r+") as f:
+		file += f.read()
+	newfilename = str(i) + str(random.getrandbits(128))
+	for i in file:
+		if i not in file_syntax:
+			file_syntax += i
+	file_syntax_len = len(file_syntax)
+	print(file_syntax)
+	with open(newfilename, "w+") as f:
+		for i in range(10000):
+			f.write(file_syntax[random.randrange(file_syntax_len)])
+	return newfilename
+			
 
 filename = []
 proto = []
@@ -114,45 +155,52 @@ while (1):
 	if(input ("Is your file already compiled? (y/n): ") == 'y'):
 		executable = input("Enter the name of your executable: ")
 		exec_args = int(input("Enter the number of arguments that you will pass to the file: "))
-		choice = input("Are your arguments files or shell variables? (fil/var/both): ").lower()[0]
+		choice = input("Are your arguments files or shell variables? (fil/var): ").lower()[0]
 		if (choice == "v"):
-			subprocess.Popen(form_command(executable, exec_args))
-			
-		elif (choice == "f"):
-			pass
-		elif (choice == "b"):
-			pass
-		for i in range(exec_args):
-			input ("Enter the file path of each file that will be passed: ")
-		break
-	else:
-		break
-if (executable):
-	pass
-while (1):
-	filename.append(input("Enter the name of your files (you can use *): "))
-	done = input("Done? (y/n): ")
-	if (done.lower()[0] ==  'y'):
-		break
-while (1):	
-	fname = input("Enter the name of the function (without braces): ")
-	if (not bool(re.search(r'^[A-Za-z_][0-9A-Za-z_]*$', fname))):
-		print("That's not the correct syntax, retard!")
-	else:
-		break
-leng = input("Enter the number of arguments to the function: ")
-for i in range(int(leng)):
-	proto.append(str(input("Enter the types of the function arguments (\"string\" for a string): ")).lower().replace("unsigned",""))
-for i in range(len(proto)):
-	proto[i] =  proto[i].strip(' ')
-for i in proto:
-	if (i not in types.keys()):	
-		types[str(i)] = input("Enter the intended size for \"{}\": ".format(i))
+			process = subprocess.Popen(form_command(executable, exec_args))
+			while (1):
+				process.stdin.write(raw_fuzz())
+				line = ""
+				while (line):
+					line += process.stdout.readline()
+				if ("segmentation" in line or "bus" in line):
+					print("LMFAO 420 EPIC BLAZE IT. Your code has FAILED!!!!! look at the test case")
+					break
 
-with open(filename[0], "a+") as f:
-	print("""\nint main() {\n""", file=f)
-	function_gen(fname, proto, f)
-	print("\n}", file=f)
+		elif (choice == "f"):
+			filenames = []
+			tmp_filenames = ""
+			for i in range(exec_args):
+				filenames.append(input ("Enter valid example file names for files that you would pass to the program:"))
+			for i in filenames:
+				tmp_filenames += " " + parse_file(i)
+			command = shlex.split(str(executable) + tmp_filenames)
+			subprocess.Popen(command)
+	else:
+		while (1):
+			filename.append(input("Enter the name of your files: "))
+			done = input("Done? (y/n): ")
+			if (done.lower()[0] ==  'y'):
+				break
+		while (1):	
+			fname = input("Enter the name of the function (without braces): ")
+			if (not bool(re.search(r'^[A-Za-z_][0-9A-Za-z_]*$', fname))):
+				print("That's not the correct syntax, retard!")
+			else:
+				break
+		leng = input("Enter the number of arguments to the function: ")
+		for i in range(int(leng)):
+			proto.append(str(input("Enter the types of the function arguments (\"string\" for a string): ")).lower().replace("unsigned",""))
+		for i in range(len(proto)):
+			proto[i] =  proto[i].strip(' ')
+		for i in proto:
+			if (i not in types.keys()):	
+				types[str(i)] = input("Enter the intended size for \"{}\": ".format(i))
+
+		with open(filename[0], "a+") as f:
+			print("""\nint main() {\n""", file=f)
+			function_gen(fname, proto, f)
+			print("\n}", file=f)
 
 
 
