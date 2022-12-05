@@ -13,7 +13,7 @@ else
 	diff <(shasum fuzzer.py | awk '{print $1}') <(shasum $var/fuzzer.py | awk '{print $1}')
 	if [ $? -eq 1 ]
 	then
-		mv $var/* .
+		mv -f $var/* .
 	else
 		rm -rf $var
 	fi
