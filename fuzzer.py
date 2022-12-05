@@ -1,5 +1,4 @@
 import re
-import art
 import random
 import operator
 import string
@@ -181,7 +180,6 @@ executable  = 0
 exec_command = 0
 is_hardcore = 0
 
-art.tprint("CRASH-STATION")
 
 if(input ("Is your file already compiled? (y/n): ") == 'y'):
 	executable = input("Enter the name of your executable: ")
