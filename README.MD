@@ -1,7 +1,11 @@
 Usage:
+
 	git clone https://github.com/Helsingxx/CRASH-STATION.git
+
 	cd CRASH-STATION
+
 	source bin/activate
+
 	python3 fuzzer.py
 
 This script create a new file for which you choose the name. It outputs into this file the range of function calls that you
