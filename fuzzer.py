@@ -18,6 +18,8 @@ def Str_Mutator(s_string):
 	a_string[random.randrange(len(a_string))] =  str_printed[random.randrange(len(str_printed))]
 	return "".join(a_string)
 
+def Str_Extend(s_string):
+	return s_string + s_string
 
 
 def El_Mutator(proto, functional, the_range):
@@ -26,7 +28,7 @@ def El_Mutator(proto, functional, the_range):
 	operator.xor, operator.or_, operator.mod, operator.lshift, operator.rshift, 
 	 operator.is_, operator.floordiv, operator.truediv]
 	str_mutations = [str.upper, str.lower, str.capitalize, str.title, str.swapcase,
-					Str_Mutator, Str_Mutator, Str_Mutator, Str_Mutator, Str_Mutator]
+					Str_Mutator, Str_Mutator, Str_Mutator, Str_Mutator, Str_Mutator, Str_Extend]
 	mut_len = len(mutations)
 	strmut_len = len (str_mutations)
 	x = 0
@@ -90,8 +92,7 @@ def function_gen(name, prot, f):
 	for i in range(0,int(input("How many lines do you wish to generate?: "))):
 		f.write("{}({});\n".format(name, gen_args(prot, functional)))
 
-def form_random_pass(proto):
-	functional = input("Please enter the same number of functional example arguments (seperated by space): ").split(" ")
+def form_random_pass(proto, functional):
 	inp = ""
 	mut_arr = El_Mutator(proto, functional, 10)
 	for i in range(len(proto)):
@@ -101,12 +102,15 @@ def form_random_pass(proto):
 	return inp
 
 
-def form_command(executable, exec_args):
+def form_command(executable, exec_args, functional):
 	proto = []
 	command = "./" + str(executable) + " "
 	for i in range(exec_args):
-		proto.append(list(types.keys())[random.randrange(30) % len(list(types.keys()))])
-	command += form_random_pass(proto)
+		proto.append("string")
+	global is_hardcore
+	is_hardcore = 1
+	command += form_random_pass(proto, functional)
+	print(command)
 	return shlex.split(command)
 
 def raw_fuzz():
@@ -191,9 +195,15 @@ if(input ("Is your file already compiled? (y/n): ") == 'y'):
 		choice = input("Are your arguments files or shell variables? (fil/var/none): ").lower()[0]
 	if (choice == "v"):
 		threads = []
-		for i in range (100):
-			thread = threading.Thread(target=run_exe, args=(form_command(executable, exec_args), i,))
-			thread.start()
+		functional = input("Please enter the same number of functional example arguments (seperated by space): ").split(" ")[:exec_args]
+		i = 0
+		while(i < 100):
+			try:
+				thread = threading.Thread(target=run_exe, args=(form_command(executable, exec_args, functional), i,))
+				thread.start()
+				i += 1
+			except:
+				i -= 1
 		for i in th:
 			print ("Thread status: ")
 			print ("Your program exited successfully!!!" if i[2] == 0 else "Your program has segfaulted!!!! GG" if i[2] == -signal.SIGSEGV else
