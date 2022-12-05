@@ -183,49 +183,46 @@ is_hardcore = 0
 
 art.tprint("CRASH-STATION")
 
-while (1):
-	if(input ("Is your file already compiled? (y/n): ") == 'y'):
-		executable = input("Enter the name of your executable: ")
-		exec_args = int(input("Enter the number of arguments that you will pass to the file: "))
-		choice = input("Are your arguments files or shell variables? (fil/var): ").lower()[0]
-		if (choice == "v"):
-			run_exe(form_command(executable, exec_args))
-
-		else:
-			filenames = []
-			tmp_filenames = ""
-			for i in range(exec_args):
-				filenames.append(input ("Enter valid example file names for files that you would pass to the program:"))
-			for i in filenames:
-				tmp_filenames += " " + parse_file(i)
-			command = shlex.split("./" + str(executable) + tmp_filenames)
-			run_exe(command)
+if(input ("Is your file already compiled? (y/n): ") == 'y'):
+	executable = input("Enter the name of your executable: ")
+	exec_args = int(input("Enter the number of arguments that you will pass to the file: "))
+	choice = input("Are your arguments files or shell variables? (fil/var): ").lower()[0]
+	if (choice == "v"):
+		run_exe(form_command(executable, exec_args))
 	else:
-		filename = input("Enter the name of the file where we will store the result: ")
-		while (1):	
-			fname = input("Enter the name of the function (without braces): ")
-			if (not bool(re.search(r'^[A-Za-z_][0-9A-Za-z_]*$', fname))):
-				print("That's not the correct syntax, retard!")
-			else:
-				break
-		header = str(input("Enter the name of the header: ")).split('.')[0] + ".h"
-		try:
-			leng = int(input("Enter the number of arguments to the function: "))
-		except:
-			print("Wrong input. Exiting....")
-			exit(1)
-		for i in range(int(leng)):
-			proto.append(str(input("Enter the types of the function arguments (\"string\" for a string): ")).lower().replace("unsigned",""))
-		for i in range(len(proto)):
-			proto[i] =  proto[i].strip(' ')
-		for i in proto:
-			if (i not in types.keys()):	
-				types[str(i)] = input("Enter the intended size for \"{}\": ".format(i))
-
-		with open(filename, "w+") as f:
-			print("#include \"{}\"\n\nint main() {{\n".format(header), file=f)
-			function_gen(fname, proto, f)
-			print("\n}", file=f)
+		filenames = []
+		tmp_filenames = ""
+		for i in range(exec_args):
+			filenames.append(input ("Enter valid example file names for files that you would pass to the program:"))
+		for i in filenames:
+			tmp_filenames += " " + parse_file(i)
+		command = shlex.split("./" + str(executable) + tmp_filenames)
+		run_exe(command)
+else:
+	filename = input("Enter the name of the file where we will store the result: ")
+	while (1):	
+		fname = input("Enter the name of the function (without braces): ")
+		if (not bool(re.search(r'^[A-Za-z_][0-9A-Za-z_]*$', fname))):
+			print("That's not the correct syntax, retard!")
+		else:
+			break
+	header = str(input("Enter the name of the header: ")).split('.')[0] + ".h"
+	try:
+		leng = int(input("Enter the number of arguments to the function: "))
+	except:
+		print("Wrong input. Exiting....")
+		exit(1)
+	for i in range(int(leng)):
+		proto.append(str(input("Enter the types of the function arguments (\"string\" for a string): ")).lower().replace("unsigned",""))
+	for i in range(len(proto)):
+		proto[i] =  proto[i].strip(' ')
+	for i in proto:
+		if (i not in types.keys()):	
+			types[str(i)] = input("Enter the intended size for \"{}\": ".format(i))
+	with open(filename, "w+") as f:
+		print("#include \"{}\"\n\nint main() {{\n".format(header), file=f)
+		function_gen(fname, proto, f)
+		print("\n}", file=f)
 
 
 
