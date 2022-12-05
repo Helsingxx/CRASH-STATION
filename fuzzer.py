@@ -1,11 +1,13 @@
 import re
 import art
-import os
 import random
 import operator
 import string
 import subprocess
 import shlex
+import fcntl
+import os
+import signal
 
 def Str_Mutator(s_string):
 	str_printed = string.ascii_letters + string.digits + "!#$%&'()*+,-./:;<=>?@[]^_`{|}~ "
@@ -38,6 +40,7 @@ def El_Mutator(proto, functional, the_range):
 		else:
 			try:
 				result.append(list(map(mutations[random.randrange(mut_len)], [i], [random.randrange(-256,256)])))
+				result[x][0] = result [x][0] % types[proto[x]]
 			except:
 				result.append([0])
 			s = 0
@@ -46,6 +49,8 @@ def El_Mutator(proto, functional, the_range):
 					res = int(list(map(mutations[random.randrange(mut_len)], [result[x][s]], [random.randrange(-256, 256)]))[0])
 					if (res >= 256 ** types[proto[x]]):
 						res = res % 256 ** types[proto[x]]
+					elif (res <= (256 ** types[proto[x]]) * -1):
+						res = (res % 256 ** types[proto[x]]) * -1
 					result[x].append(res)
 				except:
 					result[x].append(-1)
@@ -98,7 +103,7 @@ def form_random_pass(proto):
 
 def form_command(executable, exec_args):
 	proto = []
-	command = str(executable) + " "
+	command = "./" + str(executable) + " "
 	for i in range(exec_args):
 		proto.append(list(types.keys())[random.randrange(30) % len(list(types.keys()))])
 	command += form_random_pass(proto)
@@ -110,17 +115,17 @@ def raw_fuzz():
 	keylist = list(types.keys())
 	functional = "This is a long {} string".format("long " * 10).split(" ")
 	functional.remove("")
-	for i in range(len(functional)):
+	functional_len = len(functional)
+	for i in range(functional_len):
 		proto.append("string")
 	mut_result = El_Mutator(proto, functional, 10)
 	mut_true_res = []
 	mut_true_true_res = ""
-	print(mut_result)
 	for i in mut_result:
 		mut_true_res.extend(i)
 	for i in mut_true_res:
 		mut_true_true_res += i
-	print(mut_true_true_res)
+	return str(mut_true_true_res)
 
 def parse_file(i):
 	file = ""
@@ -132,12 +137,14 @@ def parse_file(i):
 		if i not in file_syntax:
 			file_syntax += i
 	file_syntax_len = len(file_syntax)
-	print(file_syntax)
-	with open(newfilename, "w+") as f:
-		for i in range(10000):
-			f.write(file_syntax[random.randrange(file_syntax_len)])
+	try:
+		with open(newfilename, "w+") as f:
+			for i in range(10000):
+				f.write(file_syntax[random.randrange(file_syntax_len)])
+	except:
+		pass
 	return newfilename
-			
+
 
 filename = []
 proto = []
@@ -157,25 +164,50 @@ while (1):
 		exec_args = int(input("Enter the number of arguments that you will pass to the file: "))
 		choice = input("Are your arguments files or shell variables? (fil/var): ").lower()[0]
 		if (choice == "v"):
-			process = subprocess.Popen(form_command(executable, exec_args))
-			while (1):
-				process.stdin.write(raw_fuzz())
-				line = ""
-				while (line):
-					line += process.stdout.readline()
-				if ("segmentation" in line or "bus" in line):
-					print("LMFAO 420 EPIC BLAZE IT. Your code has FAILED!!!!! look at the test case")
-					break
+			process = subprocess.Popen(form_command(executable, exec_args), stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+			try:
+				x = 1000
+				while (x > 0):
+					print(x)
+					process.stdin.write(bytes(raw_fuzz(), 'ascii'))
+					x -= 1
+			except:
+				pass
+			stdout, stderr = process.communicate()
+			print(process.returncode)
+			if (process.returncode == -signal.SIGSEGV):
+				print("Your program has segfaulted!!!!!!")
+			elif (process.retuncode != 0):
+				print("There is a problem with your program!!!!!")
+			else:
+				print("Your program exited successfully!!")
 
-		elif (choice == "f"):
+		else:
 			filenames = []
 			tmp_filenames = ""
 			for i in range(exec_args):
 				filenames.append(input ("Enter valid example file names for files that you would pass to the program:"))
 			for i in filenames:
 				tmp_filenames += " " + parse_file(i)
-			command = shlex.split(str(executable) + tmp_filenames)
-			subprocess.Popen(command)
+			command = shlex.split("./" + str(executable) + tmp_filenames)
+			print(command)
+			process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+			try:
+				x = 1000
+				while (x > 0):
+					print(x)
+					process.stdin.write(bytes(raw_fuzz(), 'ascii'))
+					x -= 1
+			except:
+				pass
+			stdout, stderr = process.communicate()
+			print(process.returncode)
+			if (process.returncode == -signal.SIGSEGV):
+				print("Your program has segfaulted!!!!!!")
+			elif (process.retuncode != 0):
+				print("There is a problem with your program!!!!!")
+			else:
+				print("Your program exited successfully!!")
 	else:
 		while (1):
 			filename.append(input("Enter the name of your files: "))
