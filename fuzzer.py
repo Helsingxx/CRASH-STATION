@@ -11,6 +11,8 @@ import signal
 
 def Str_Mutator(s_string):
 	str_printed = string.ascii_letters + string.digits + "!#$%&'()*+,-./:;<=>?@[]^_`{|}~ "
+	if (is_hardcore):
+		str_printed = string.printable
 	#random_outchar = str_printed[random.randrange(len(str_printed))]
 	#random_inchar = s_string[random.randrange(len(s_string))]
 	#return str(s_string).replace(random_inchar, random_outchar)
@@ -87,7 +89,7 @@ def function_gen(name, prot, f):
 			functional.append(str(input ("Enter an example for a functional input; {}: ".format(i))))
 		else:
 			functional.append(int(input ("Enter an example for a functional input; {}: ".format(i))))
-	for i in range(0,10000):
+	for i in range(0,int(input("How many lines do you wish to generate?: "))):
 		f.write("{}({});\n".format(name, gen_args(prot, functional)))
 
 def form_random_pass(proto):
@@ -118,7 +120,10 @@ def raw_fuzz():
 	functional_len = len(functional)
 	for i in range(functional_len):
 		proto.append("string")
+	global is_hardcore
+	is_hardcore = 1
 	mut_result = El_Mutator(proto, functional, 10)
+	is_hardcore = 0
 	mut_true_res = []
 	mut_true_true_res = ""
 	for i in mut_result:
@@ -146,6 +151,25 @@ def parse_file(i):
 	return newfilename
 
 
+def run_exe(command):
+	process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+	try:
+		x = 1000
+		while (x > 0):
+			process.stdin.write(bytes(raw_fuzz() + "\n", 'ascii'))
+			x -= 1
+	except:
+		pass
+	stdout, stderr = process.communicate()
+	print("Return code:", int(process.returncode))
+	if (int(process.returncode) == -signal.SIGSEGV):
+		print("Your program has segfaulted!!!!!!")
+	elif (int(process.returncode) != 0):
+		print("There is a problem with your program!!!!!")
+	else:
+		print("Your program exited successfully!!")
+
+
 filename = []
 proto = []
 size = []
@@ -155,6 +179,7 @@ types = {"char":1, "int":4, "short":2, "long":8, "long long":8, "string" :8, "po
 create_multiple_exe = 0
 executable  = 0
 exec_command = 0
+is_hardcore = 0
 
 art.tprint("CRASH-STATION")
 
@@ -164,23 +189,7 @@ while (1):
 		exec_args = int(input("Enter the number of arguments that you will pass to the file: "))
 		choice = input("Are your arguments files or shell variables? (fil/var): ").lower()[0]
 		if (choice == "v"):
-			process = subprocess.Popen(form_command(executable, exec_args), stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-			try:
-				x = 1000
-				while (x > 0):
-					print(x)
-					process.stdin.write(bytes(raw_fuzz(), 'ascii'))
-					x -= 1
-			except:
-				pass
-			stdout, stderr = process.communicate()
-			print(process.returncode)
-			if (process.returncode == -signal.SIGSEGV):
-				print("Your program has segfaulted!!!!!!")
-			elif (process.retuncode != 0):
-				print("There is a problem with your program!!!!!")
-			else:
-				print("Your program exited successfully!!")
+			run_exe(form_command(executable, exec_args))
 
 		else:
 			filenames = []
@@ -190,37 +199,21 @@ while (1):
 			for i in filenames:
 				tmp_filenames += " " + parse_file(i)
 			command = shlex.split("./" + str(executable) + tmp_filenames)
-			print(command)
-			process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-			try:
-				x = 1000
-				while (x > 0):
-					print(x)
-					process.stdin.write(bytes(raw_fuzz(), 'ascii'))
-					x -= 1
-			except:
-				pass
-			stdout, stderr = process.communicate()
-			print(process.returncode)
-			if (process.returncode == -signal.SIGSEGV):
-				print("Your program has segfaulted!!!!!!")
-			elif (process.retuncode != 0):
-				print("There is a problem with your program!!!!!")
-			else:
-				print("Your program exited successfully!!")
+			run_exe(command)
 	else:
-		while (1):
-			filename.append(input("Enter the name of your files: "))
-			done = input("Done? (y/n): ")
-			if (done.lower()[0] ==  'y'):
-				break
+		filename = input("Enter the name of the file where we will store the result: ")
 		while (1):	
 			fname = input("Enter the name of the function (without braces): ")
 			if (not bool(re.search(r'^[A-Za-z_][0-9A-Za-z_]*$', fname))):
 				print("That's not the correct syntax, retard!")
 			else:
 				break
-		leng = input("Enter the number of arguments to the function: ")
+		header = str(input("Enter the name of the header: ")).split('.')[0] + ".h"
+		try:
+			leng = int(input("Enter the number of arguments to the function: "))
+		except:
+			print("Wrong input. Exiting....")
+			exit(1)
 		for i in range(int(leng)):
 			proto.append(str(input("Enter the types of the function arguments (\"string\" for a string): ")).lower().replace("unsigned",""))
 		for i in range(len(proto)):
@@ -229,8 +222,8 @@ while (1):
 			if (i not in types.keys()):	
 				types[str(i)] = input("Enter the intended size for \"{}\": ".format(i))
 
-		with open(filename[0], "a+") as f:
-			print("""\nint main() {\n""", file=f)
+		with open(filename, "w+") as f:
+			print("#include \"{}\"\n\nint main() {{\n".format(header), file=f)
 			function_gen(fname, proto, f)
 			print("\n}", file=f)
 
