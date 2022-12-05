@@ -4,9 +4,8 @@ import operator
 import string
 import subprocess
 import shlex
-import fcntl
-import os
 import signal
+import threading
 
 def Str_Mutator(s_string):
 	str_printed = string.ascii_letters + string.digits + "!#$%&'()*+,-./:;<=>?@[]^_`{|}~ "
@@ -150,7 +149,7 @@ def parse_file(i):
 	return newfilename
 
 
-def run_exe(command):
+def run_exe(command, i):
 	process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
 	try:
 		x = 1000
@@ -160,13 +159,15 @@ def run_exe(command):
 	except:
 		pass
 	stdout, stderr = process.communicate()
-	print("Return code:", int(process.returncode))
-	if (int(process.returncode) == -signal.SIGSEGV):
-		print("Your program has segfaulted!!!!!!")
-	elif (int(process.returncode) != 0):
-		print("There is a problem with your program!!!!!")
-	else:
-		print("Your program exited successfully!!")
+	global th
+	th.append([stdout, stderr, int(process.returncode)])
+	#print("Return code:", int(process.returncode))
+#	if (int(process.returncode) == -signal.SIGSEGV):
+	#	print("Your program has segfaulted!!!!!!")
+	#elif (int(process.returncode) != 0):
+	#	print("There is a problem with your program!!!!!")
+	#else:
+	#	print("Your program exited successfully!!")
 
 
 filename = []
@@ -179,14 +180,24 @@ create_multiple_exe = 0
 executable  = 0
 exec_command = 0
 is_hardcore = 0
+th = []
 
 
 if(input ("Is your file already compiled? (y/n): ") == 'y'):
 	executable = input("Enter the name of your executable: ")
 	exec_args = int(input("Enter the number of arguments that you will pass to the file: "))
-	choice = input("Are your arguments files or shell variables? (fil/var): ").lower()[0]
+	choice = "f"
+	if (exec_args > 0):
+		choice = input("Are your arguments files or shell variables? (fil/var/none): ").lower()[0]
 	if (choice == "v"):
-		run_exe(form_command(executable, exec_args))
+		threads = []
+		for i in range (100):
+			thread = threading.Thread(target=run_exe, args=(form_command(executable, exec_args), i,))
+			thread.start()
+		for i in th:
+			print ("Thread status: ")
+			print ("Your program exited successfully!!!" if i[2] == 0 else "Your program has segfaulted!!!! GG" if i[2] == -signal.SIGSEGV else
+					"There is some issue with your program....")
 	else:
 		filenames = []
 		tmp_filenames = ""
@@ -195,7 +206,14 @@ if(input ("Is your file already compiled? (y/n): ") == 'y'):
 		for i in filenames:
 			tmp_filenames += " " + parse_file(i)
 		command = shlex.split("./" + str(executable) + tmp_filenames)
-		run_exe(command)
+		threads = []
+		for i in range (100):
+			thread = threading.Thread(target=run_exe, args=(command, i,))
+			thread.start()
+		for i in th:
+			print ("Thread status: ")
+			print ("Your program exited successfully!!!" if i[2] == 0 else "Your program has segfaulted!!!! GG" if i[2] == -signal.SIGSEGV else
+					"There is some issue with your program....")
 else:
 	filename = input("Enter the name of the file where we will store the result: ")
 	while (1):	
