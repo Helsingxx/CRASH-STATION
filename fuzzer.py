@@ -102,11 +102,8 @@ def form_random_pass(proto, functional):
 	return inp
 
 
-def form_command(executable, exec_args, functional):
-	proto = []
+def form_command(executable, exec_args, functional, proto):
 	command = "./" + str(executable) + " "
-	for i in range(exec_args):
-		proto.append("string")
 	global is_hardcore
 	is_hardcore = 1
 	command += form_random_pass(proto, functional)
@@ -195,11 +192,12 @@ if(input ("Is your file already compiled? (y/n): ") == 'y'):
 		choice = input("Are your arguments files or shell variables? (fil/var/none): ").lower()[0]
 	if (choice == "v"):
 		threads = []
+		proto = input("Please enter the type of each argument(int, long, short, char, string) seperated by space:").split(" ")[:exec_args]
 		functional = input("Please enter the same number of functional example arguments (seperated by space): ").split(" ")[:exec_args]
 		i = 0
 		while(i < 100):
 			try:
-				thread = threading.Thread(target=run_exe, args=(form_command(executable, exec_args, functional), i,))
+				thread = threading.Thread(target=run_exe, args=(form_command(executable, exec_args, functional, proto), i,))
 				thread.start()
 				i += 1
 			except:
